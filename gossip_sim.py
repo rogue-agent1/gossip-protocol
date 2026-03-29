@@ -1,27 +1,38 @@
 #!/usr/bin/env python3
-"""gossip_sim - Gossip protocol simulation."""
-import sys,random
+"""Gossip protocol — epidemic broadcast simulator."""
+import random, sys
+
 class Node:
-    def __init__(s,nid):s.id=nid;s.data={};s.peers=[]
-    def update(s,key,val,version=0):s.data[key]={"val":val,"ver":version}
-    def gossip(s):
-        if not s.peers:return 0
-        target=random.choice(s.peers);changes=0
-        for key,info in s.data.items():
-            if key not in target.data or target.data[key]["ver"]<info["ver"]:
-                target.data[key]=dict(info);changes+=1
-        return changes
-def simulate(n_nodes=10,rounds=20):
-    nodes=[Node(i) for i in range(n_nodes)]
-    for nd in nodes:nd.peers=[p for p in nodes if p.id!=nd.id]
-    nodes[0].update("secret","hello",1)
+    def __init__(self, nid):
+        self.id = nid
+        self.data = set()
+        self.infected = False
+    def receive(self, msg):
+        if msg not in self.data:
+            self.data.add(msg)
+            self.infected = True
+            return True
+        return False
+
+def simulate(n=50, fanout=3, rounds=20):
+    nodes = [Node(i) for i in range(n)]
+    nodes[0].receive("secret")
+    print(f"Gossip: {n} nodes, fanout={fanout}\n")
     for r in range(rounds):
-        total=0
-        for nd in nodes:total+=nd.gossip()
-        informed=sum(1 for nd in nodes if "secret" in nd.data)
-        print(f"  Round {r}: {informed}/{n_nodes} nodes informed, {total} propagations")
-        if informed==n_nodes:print(f"  Convergence at round {r}!");return r
-    return rounds
-if __name__=="__main__":
-    n=int(sys.argv[1]) if len(sys.argv)>1 else 20
-    simulate(n)
+        spreaders = [nd for nd in nodes if nd.infected]
+        if not spreaders: break
+        for nd in spreaders:
+            targets = random.sample([x for x in nodes if x.id != nd.id], min(fanout, n-1))
+            for t in targets:
+                t.receive("secret")
+            nd.infected = False
+        informed = sum(1 for nd in nodes if nd.data)
+        print(f"Round {r+1}: {informed}/{n} informed ({informed*100//n}%)")
+        if informed == n:
+            print(f"\nFull convergence in {r+1} rounds!")
+            return
+    informed = sum(1 for nd in nodes if nd.data)
+    print(f"\nAfter {rounds} rounds: {informed}/{n} informed")
+
+if __name__ == "__main__":
+    simulate(int(sys.argv[1]) if len(sys.argv) > 1 else 50)

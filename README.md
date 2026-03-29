@@ -1,11 +1,9 @@
-# gossip-sim
+# gossip-protocol
 
-Gossip protocol simulation.""".
-
-Zero dependencies. Python 3.8+.
+Gossip protocol epidemic broadcast simulator. Single-file Python CLI, zero dependencies.
 
 ## Usage
 
 ```bash
-python3 gossip_sim.py --help
+python3 gossip_sim.py
 ```
